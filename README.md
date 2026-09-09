@@ -1,6 +1,6 @@
 # Decoupled IoT Event Streaming Architecture
 
-[![Demo Video](https://youtu.be/w3ypnW0UWHc)]
+[![Demo Video](https://img.youtube.com/vi/w3ypnW0UWHc/maxresdefault.jpg)(https://youtu.be/w3ypnW0UWHc)]
 
 ## Overview
 This capstone project demonstrates an enterprise-grade, event-driven architecture designed to solve a common IoT challenge: point-to-point data silos. By placing a Redpanda event broker at the center of the infrastructure, edge sensors are completely decoupled from downstream data consumers, allowing for infinite horizontal scalability and zero data loss during database maintenance.
