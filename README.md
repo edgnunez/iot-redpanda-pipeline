@@ -36,6 +36,7 @@ flowchart LR
   class Sensors,Dashboard,DBWriter python
   class DB,UI data
   class Broker broker
+```
 
 ## Key Technical Features
 
