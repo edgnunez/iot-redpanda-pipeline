@@ -1,0 +1,35 @@
+# =================================================================
+# Initial cluster settings for this project's Redpanda broker.
+#
+# Applied only when the cluster first starts. To change a setting
+# afterward, use 'rpk cluster config set', or remove the data volume
+# (docker compose down -v) to start fresh
+#
+# Sets up a security baseline (SASL authentication, required Admin API
+# auth, one superuser) and the consumer-group metrics the demo needs.
+#
+# This is a local demo config, not production-ready. Production would
+# add TLS encryption, multiple brokers, and managed secrets.
+#
+# https://docs.redpanda.com/current/deploy/deployment-option/self-hosted/manual/production/production-deployment/#configure-a-bootstrap-file
+# =================================================================
+
+# Enable SASL authentication for the Kafka and Admin APIs.
+# https://docs.redpanda.com/current/reference/properties/cluster-properties/#admin_api_require_auth
+admin_api_require_auth: true
+# At least one superuser is required to be able to create other SASL users
+# https://docs.redpanda.com/current/reference/properties/cluster-properties/#superusers
+superusers:
+  - superuser
+# https://docs.redpanda.com/current/reference/properties/cluster-properties/#enable_sasl
+enable_sasl: true
+# Disabled so a typo in a topic name fails loudly instead of silently creating a new topic.
+# Topics are created explicitly by the createtopic service.
+auto_create_topics_enabled: false
+
+# Enable Redpanda to collect consumer group metrics.
+# https://docs.redpanda.com/current/reference/properties/cluster-properties/#enable_consumer_group_metrics
+enable_consumer_group_metrics:
+  - "group"
+  - "partition"
+  - "consumer_lag"
