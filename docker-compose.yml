@@ -34,3 +34,20 @@ services:
       interval: 10s
       timeout: 15s
       retries: 10
+  createtopic:
+    image: docker.redpanda.com/redpandadata/redpanda:v26.2.2
+    command:
+      - topic
+      - create
+      - classroom-temperatures
+      - --partitions 3
+      - --replicas 1
+      - --if-not-exists
+      - -X user=superuser
+      - -X pass=secretpassword
+      - -X brokers=redpanda-0:9092
+    networks:
+      - redpanda_network
+    depends_on:
+      redpanda-0:
+        condition: service_healthy
