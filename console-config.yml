@@ -1,0 +1,20 @@
+# Console connects to the broker over the internal listener (inside the Docker network).
+
+kafka:
+  brokers: ["redpanda-0:9092"]
+  sasl:
+    enabled: true
+    mechanism: SCRAM-SHA-256
+    username: superuser
+    password: secretpassword
+    impersonateUser: false
+
+# Admin API: broker health and user/ACL views. Requries auth (see bootstrap.yml).
+redpanda:
+  adminApi:
+    enabled: true
+    urls: ["http://redpanda-0:9644"]
+    authentication:
+      basic:
+        username: superuser
+        password: secretpassword
