@@ -6,7 +6,6 @@ kafka:
     enabled: true
     mechanism: SCRAM-SHA-256
     username: superuser
-    password: secretpassword
     impersonateUser: false
 
 # Admin API: broker health and user/ACL views. Requries auth (see bootstrap.yml).
@@ -17,4 +16,5 @@ redpanda:
     authentication:
       basic:
         username: superuser
-        password: secretpassword
+
+# Passwords are supplied via environment variables form docker-compose.yml

@@ -23,7 +23,7 @@ services:
       - --mode dev-container
       - --smp 1
     environment:
-      RP_BOOTSTRAP_USER: "superuser:secretpassword"
+      RP_BOOTSTRAP_USER: "superuser:${REDPANDA_SUPERUSER_PASSWORD:?Set REDPANDA_SUPERUSERPASSWORD in .env}"
     volumes:
       - redpanda-0:/var/lib/redpanda/data
       - ./bootstrap.yml:/etc/redpanda/.bootstrap.yaml
@@ -32,7 +32,7 @@ services:
     ports:
       - 19092:19092
     healthcheck:
-      test: ["CMD", "rpk", "cluster", "info", "-X", "user=superuser", "-X", "pass=secretpassword"]
+      test: ["CMD", "rpk", "cluster", "info", "-X", "user=superuser", "-X", "pass=${REDPANDA_SUPERUSER_PASSWORD}"]
       interval: 10s
       timeout: 15s
       retries: 10
@@ -46,7 +46,7 @@ services:
       - --replicas 1
       - --if-not-exists
       - -X user=superuser
-      - -X pass=secretpassword
+      - -X pass=${REDPANDA_SUPERUSER_PASSWORD}
       - -X brokers=redpanda-0:9092
     networks:
       - redpanda_network
@@ -58,6 +58,8 @@ services:
     container_name: redpanda-console
     environment:
       CONFIG_FILEPATH: /etc/redpanda/console-config.yml
+      KAFKA_SASL_PASSWORD: ${REDPANDA_SUPERUSER_PASSWORD}
+      REDPANDA_ADMINAPI_AUTHENTICATION_BASIC_PASSWORD: ${REDPANDA_SUPERUSER_PASSWORD}
     volumes:
       - ./console-config.yml:/etc/redpanda/console-config.yml
     networks:
@@ -72,7 +74,7 @@ services:
     container_name: postgres
     environment:
       POSTGRES_USER: admin
-      POSTGRES_PASSWORD: adminpassword
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: iot_data
     volumes:
       - postgres-data:/var/lib/postgresql/data
