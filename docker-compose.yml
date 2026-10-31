@@ -53,6 +53,27 @@ services:
     depends_on:
       redpanda-0:
         condition: service_healthy
+  security-setup:
+    image: docker.redpanda.com/redpandadata/redpanda:v26.2.2
+    entrypoint: ["/bin/bash", "/setup/create-users-acls.sh"]
+    environment:
+      RPK_BROKERS: redpanda-0:9092
+      RPK_ADMIN_HOSTS: redpanda-0:9644
+      RPK_USER: superuser
+      RPK_PASS: ${REDPANDA_SUPERUSER_PASSWORD:?Set REDPANDA_SUPERUSER_PASSWORD in .env}
+      RPK_SASL_MECHANISM: SCRAM-SHA-256
+      SENSOR_PASSWORD: ${SENSOR_PASSWORD:?Set SENSOR_PASSWORD in .env}
+      DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD:?Set DASHBOARD_PASSWORD in .env}
+      DB_WRITER_PASSWORD: ${DB_WRITER_PASSWORD:?Set DB_WRITER_PASSWORD in .env}
+    volumes:
+      - ./setup:/setup:ro
+    networks:
+      - redpanda_network
+    depends_on:
+      redpanda-0:
+        condition: service_healthy
+      createtopic:
+        condition: service_completed_successfully  
   console:
     image: docker.redpanda.com/redpandadata/console:v3.11.0
     container_name: redpanda-console
