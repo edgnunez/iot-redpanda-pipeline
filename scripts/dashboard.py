@@ -1,15 +1,19 @@
 import json
+import os
+from dotenv import load_dotenv
 from confluent_kafka import Consumer, KafkaError, KafkaException
 
-# 1. Connect to Redpanda with Sasha's credentials
+load_dotenv()  # loads .env from the project folder into environment variables
+
+# 1. Configure the Kafka consumer to connect to Redpanda with SASL authentication
 conf = {
     'bootstrap.servers': 'localhost:19092',
     'group.id': 'iot-dashboard-group',      # The group we just authorized
     'auto.offset.reset': 'earliest',        # 'earliest' reads all missed messages from the beginning
     'security.protocol': 'SASL_PLAINTEXT',
     'sasl.mechanism': 'SCRAM-SHA-256',
-    'sasl.username': 'Sasha',
-    'sasl.password': 'sashapassword'
+    'sasl.username': 'dashboard',  # Use the same username as the sensor producer
+    'sasl.password': os.environ["DASHBOARD_PASSWORD"],
 }
 
 consumer = Consumer(conf)
