@@ -2,10 +2,16 @@
 
 [![Demo Video](https://img.shields.io/badge/Watch_the_Architecture_Demo-YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/w3ypnW0UWHc)
 
-## Overview
-This capstone project demonstrates an enterprise-grade, event-driven architecture designed to solve a common IoT challenge: point-to-point data silos. By placing a Redpanda event broker at the center of the infrastructure, edge sensors are completely decoupled from downstream data consumers, allowing for infinite horizontal scalability and zero data loss during database maintenance.
+*The video shows an earlier version; a re-recording is planned after the resilience demo (Phase 3)*
 
-Built with pre-sales engineering in mind, this project emphasizes **business value through technical architecture**, showcasing secure fan-out patterns, containerized orchestration, and real-time data visualization.
+## Overview
+This project demonstrates an event-driven architecture designed to solve a common IoT challenge: point-to-point data silos, which become fragile, tightly coupled, and hard to change as more systems are connected.
+
+To solve this, a Redpanda event broker sits at the center of the infrastructure, decoupling edge sensors from the downstream systems that consume their data.
+
+If the database goes down, sensors keep sending, and readings wait in the broker (up to the topic’s 7-day retention period). New consumers, like the database writer, can be added without changing the sensor code.
+
+Built with pre-sales engineering in mind, this project emphasizes business value through technical architecture. It uses production patterns (authentication, least-privilege service accounts, and infrastructure as code) and showcases fan-out, containerized orchestration, and real-time data visualization.
 
 ## Architecture & Data Flow
 
