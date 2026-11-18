@@ -17,30 +17,29 @@ Built with pre-sales engineering in mind, this project emphasizes business value
 
 ```mermaid
 flowchart LR
-  %% Define Nodes
-  Sensors(["IoT Sensors<br/>sensor.py"])
+  Sensors(["IoT Sensors<br/>sensor.py<br/>(User: sensor)"])
   Broker{{"Redpanda Broker<br/>(Docker)"}}
-  Topic["Topic:<br/>classroom-temperatures"]
-  Dashboard(["Live Terminal<br/>dashboard.py"])
-  DBWriter(["DB Writer<br/>db_writer.py"])
+  Topic["Topic:<br/>classroom-temperatures<br/>(3 partitions)"]
+  Dashboard(["Live Terminal<br/>dashboard.py<br/>(User: dashboard)"])
+  DBWriter(["DB Writer<br/>db_writer.py<br/>(User: db-writer)"])
   DB[("PostgreSQL<br/>(Docker)")]
-  UI[["Metabase UI<br/>(Docker)"]]
+  UI[["Metabase<br/>(Docker)"]]
+  Console[["Redpanda Console<br/>(Docker)"]]
 
-  %% Define Flow
-  Sensors -- Produces JSON --> Broker
+  Sensors -- "Produces JSON (SASL/SCRAM)" --> Broker
   Broker --- Topic
-  Topic -- Consumer Group 1 --> Dashboard
-  Topic -- Consumer Group 2 --> DBWriter
+  Topic -- "Consumer group:<br/>iot-dashboard-group" --> Dashboard
+  Topic -- "Consumer group:<br/>db-writer-group" --> DBWriter
   DBWriter -- SQL INSERT --> DB
   DB -- Queries --> UI
+  Console -. Monitors .-> Broker
 
-  %% Styling
   classDef python fill:#306998,color:#FFD43B,stroke:#306998
   classDef data fill:#336791,color:#fff,stroke:#336791
   classDef broker fill:#E34F26,color:#fff,stroke:#E34F26
 
   class Sensors,Dashboard,DBWriter python
-  class DB,UI data
+  class DB,UI,Console data
   class Broker broker
 ```
 
