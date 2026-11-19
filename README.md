@@ -2,7 +2,7 @@
 
 [![Demo Video](https://img.shields.io/badge/Watch_the_Architecture_Demo-YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/w3ypnW0UWHc)
 
-*The video shows an earlier version; a re-recording is planned after the resilience demo (Phase 3)*
+*The video shows an earlier version; a re-recording is planned after the outage-recovery demo.*
 
 ## Overview
 This project demonstrates an event-driven architecture designed to solve a common IoT challenge: point-to-point data silos, which become fragile, tightly coupled, and hard to change as more systems are connected.
@@ -45,54 +45,89 @@ flowchart LR
 
 ## Key Technical Features
 
-* **Complete Decoupling:** Producers and consumers operate entirely independently. Downstream database outages do not impact edge sensor data collection.
-* **The Fan-Out Pattern:** A single stream of telemetry data is consumed by multiple independent consumer groups simultaneously (Terminal Dashboard & PostgreSQL).
-* **Enterprise Security:** The Redpanda cluster is secured using SASL/SCRAM authentication. Python clients authenticate via explicit Access Control Lists (ACLs) scoped strictly to the `classroom-temperatures` topic.
-* **Infrastructure as Code:** The entire data stack (Message Broker, Relational Database, and BI Tool) is orchestrated via a single `docker-compose.yml` file using internal Docker networking.
+* **Decoupling:** Producers and consumers never communicate directly; each talks only to the broker. A database outage doesn't stop the sensors from collecting data.
+* **The Fan-Out Pattern:** One stream of telemetry is read independently by two consumer groups at the same time: the live terminal dashboard (`iot-dashboard-group`) and the database writer (`db-writer-group`).
+* **Authentication & Least Privilege:** The cluster requires SASL/SCRAM authentication, so there are no anonymous connections. Each service has its own account: the sensor can only write, and the consumers can only read. Accounts and permissions are defined in code by a setup script designed to be safely re-run.
+* **Infrastructure as Code / Reproducibility:** The whole stack (message broker, Redpanda Console, PostgreSQL, and Metabase) runs from a single `docker-compose.yml` on a shared Docker network. One command brings everything up, image versions are pinned, and secrets live in a gitignored `.env`, with `.env.example` as the committed template.
+
+### Security model
+
+| Account | Used by | Permissions |
+|---|---|---|
+| `sensor` | `sensor.py` | Write and Describe on `classroom-temperatures` |
+| `dashboard` | `dashboard.py` | Read and Describe on `classroom-temperatures`; Read on group `iot-dashboard-group` |
+| `db-writer` | `db_writer.py` | Read and Describe on `classroom-temperatures`; Read on group `db-writer-group` |
+| `superuser` | Setup jobs and Console | Cluster administration |
+
+Accounts and ACLs are created by `setup/create-users-acls.sh`, which runs automatically on `docker compose up` and is safe to re-run. All passwords come from `.env`, which is never committed.
 
 ## Tech Stack
 
-* **Event Streaming:** Redpanda (Kafka-compatible)
-* **Languages:** Python (confluent-kafka, psycopg2)
+* **Event Streaming:** Redpanda v26.2.2 (Kafka API-compatible), Redpanda Console v3.11.0
+* **Languages:** Python 3.14.7 (confluent-kafka, psycopg2-binary, python-dotenv; pinned in `requirements.txt`)
 * **Storage:** PostgreSQL 15
-* **Visualization:** Metabase
+* **Visualization:** Metabase v0.64.3.4
 * **Orchestration:** Docker Compose
 
 ---
 
-## Quick Start Guide
+## Prerequisites
 
-### 1. Spin up the infrastructure
-Ensure Docker Desktop is running, then launch the cluster:
+- Docker Desktop (running)
+- Python 3.14 or newer
+- Git
+
+## Quick Start
+
+### 1. Clone and configure
+```bash
+git clone https://github.com/edgnunez/iot-redpanda-pipeline.git
+cd iot-redpanda-pipeline
+cp .env.example .env        # Windows PowerShell: Copy-Item .env.example .env
+```
+Edit `.env` and set your own passwords **before** the first start. Passwords are applied only when the broker and database are first created.
+
+### 2. Start the infrastructure
 ```bash
 docker compose up -d
+docker compose ps -a
 ```
-*Note: Metabase may take 1-2 minutes to initialize on port 3000.*
+Wait until `redpanda-0` and `postgres` show `(healthy)`. The one-time setup jobs, `createtopic` and `security-setup`, should show `Exited (0)`.
 
-### 2. Install Python dependencies
+### 3. Set up Python
 ```bash
-pip install confluent-kafka psycopg2-binary
+python -m venv .venv
+source .venv/bin/activate   # Windows PowerShell: .\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
 ```
+On Windows, if activation is blocked, run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once and try again.
 
-### 3. Run the pipeline
-Open three separate terminal windows to watch the decoupled fan-out happen in real-time.
-
-**Terminal 1: Start the downstream database writer**
+### 4. Run the pipeline
+Open three terminals (activate the virtual environment in each) and start, in this order:
 ```bash
-python db_writer.py
+python scripts/db_writer.py
+python scripts/dashboard.py
+python scripts/sensor.py
 ```
 
-**Terminal 2: Start the downstream live dashboard**
+### 5. Explore
+- **Redpanda Console:** http://localhost:8080 (topics, messages, consumer group lag, users and ACLs)
+- **Metabase:** http://localhost:3000. On first launch, add a PostgreSQL database with host `postgres`, port `5432`, database `iot_data`, user `admin`, and the `POSTGRES_PASSWORD` from your `.env`.
+
+_Note: Metabase may take 1-2 minutes to initialize on port 3000 and will ask you to create an admin account before you can add the database._
+
+### Stopping and resetting
 ```bash
-python dashboard.py
+docker compose down      # stop; data is kept
+docker compose down -v   # stop and delete all data (fresh start)
 ```
 
-**Terminal 3: Start the upstream edge sensors**
-```bash
-python sensor.py
-```
+---
 
-### 4. Visualize the data
-1. Navigate to `http://localhost:3000` to access Metabase.
-2. Connect to the `postgres` Docker service.
-3. Build a line chart grouping `Average Temperature` by `Classroom` over `Recorded At (Minute)`.
+## Known limitations and roadmap
+* There is only a single broker, so there isn't any replication; production would run at least three.
+* TLS is not implemented, so credentials and data cross the network unencrypted (planned: add TLS to the client listener).
+* `db_writer.py` auto-commits offsets and skips errors, so a failed insert can lose a message (planned: commit offsets only after a successful insert, then demo outage recovery).
+* The sensor doesn't send a message key, so there's no per-classroom ordering guarantee (planned: key messages by classroom).
+* Console uses the superuser account.
+* The `.env` passwords are for local development; production would use a secrets manager.
