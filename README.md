@@ -2,39 +2,44 @@
 
 [![Demo Video](https://img.shields.io/badge/Watch_the_Architecture_Demo-YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/w3ypnW0UWHc)
 
-## Overview
-This capstone project demonstrates an enterprise-grade, event-driven architecture designed to solve a common IoT challenge: point-to-point data silos. By placing a Redpanda event broker at the center of the infrastructure, edge sensors are completely decoupled from downstream data consumers, allowing for infinite horizontal scalability and zero data loss during database maintenance.
+*The video shows an earlier version; a re-recording is planned after the resilience demo (Phase 3)*
 
-Built with pre-sales engineering in mind, this project emphasizes **business value through technical architecture**, showcasing secure fan-out patterns, containerized orchestration, and real-time data visualization.
+## Overview
+This project demonstrates an event-driven architecture designed to solve a common IoT challenge: point-to-point data silos, which become fragile, tightly coupled, and hard to change as more systems are connected.
+
+To solve this, a Redpanda event broker sits at the center of the infrastructure, decoupling edge sensors from the downstream systems that consume their data.
+
+If the database goes down, sensors keep sending, and readings wait in the broker (up to the topic’s 7-day retention period). New consumers, like the database writer, can be added without changing the sensor code.
+
+Built with pre-sales engineering in mind, this project emphasizes business value through technical architecture. It uses production patterns (authentication, least-privilege service accounts, and infrastructure as code) and showcases fan-out, containerized orchestration, and real-time data visualization.
 
 ## Architecture & Data Flow
 
 ```mermaid
 flowchart LR
-  %% Define Nodes
-  Sensors(["IoT Sensors<br/>sensor.py"])
+  Sensors(["IoT Sensors<br/>sensor.py<br/>(User: sensor)"])
   Broker{{"Redpanda Broker<br/>(Docker)"}}
-  Topic["Topic:<br/>classroom-temperatures"]
-  Dashboard(["Live Terminal<br/>dashboard.py"])
-  DBWriter(["DB Writer<br/>db_writer.py"])
+  Topic["Topic:<br/>classroom-temperatures<br/>(3 partitions)"]
+  Dashboard(["Live Terminal<br/>dashboard.py<br/>(User: dashboard)"])
+  DBWriter(["DB Writer<br/>db_writer.py<br/>(User: db-writer)"])
   DB[("PostgreSQL<br/>(Docker)")]
-  UI[["Metabase UI<br/>(Docker)"]]
+  UI[["Metabase<br/>(Docker)"]]
+  Console[["Redpanda Console<br/>(Docker)"]]
 
-  %% Define Flow
-  Sensors -- Produces JSON --> Broker
+  Sensors -- "Produces JSON (SASL/SCRAM)" --> Broker
   Broker --- Topic
-  Topic -- Consumer Group 1 --> Dashboard
-  Topic -- Consumer Group 2 --> DBWriter
+  Topic -- "Consumer group:<br/>iot-dashboard-group" --> Dashboard
+  Topic -- "Consumer group:<br/>db-writer-group" --> DBWriter
   DBWriter -- SQL INSERT --> DB
   DB -- Queries --> UI
+  Console -. Monitors .-> Broker
 
-  %% Styling
   classDef python fill:#306998,color:#FFD43B,stroke:#306998
   classDef data fill:#336791,color:#fff,stroke:#336791
   classDef broker fill:#E34F26,color:#fff,stroke:#E34F26
 
   class Sensors,Dashboard,DBWriter python
-  class DB,UI data
+  class DB,UI,Console data
   class Broker broker
 ```
 
