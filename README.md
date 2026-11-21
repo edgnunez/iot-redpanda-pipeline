@@ -94,7 +94,8 @@ docker compose ps -a
 ```
 Wait until `redpanda-0` and `postgres` show `(healthy)`. The one-time setup jobs, `createtopic` and `security-setup`, should show `Exited (0)`.
 
-### 3. Set up Python
+### 3. Set up Python (once)
+From the project folder, create the virtual environment and install dependencies. You only do this once:
 ```bash
 python -m venv .venv
 source .venv/bin/activate   # Windows PowerShell: .\.venv\Scripts\Activate.ps1
@@ -103,7 +104,12 @@ pip install -r requirements.txt
 On Windows, if activation is blocked, run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once and try again.
 
 ### 4. Run the pipeline
-Open three terminals (activate the virtual environment in each) and start, in this order:
+Open three terminals. In **each** one, go to the project folder and activate the virtual environment. Don't create it again:
+```bash
+cd path/to/iot-redpanda-pipeline
+source .venv/bin/activate   # Windows PowerShell: .\.venv\Scripts\Activate.ps1
+```
+Then start one script per terminal, in this order:
 ```bash
 python scripts/db_writer.py
 python scripts/dashboard.py
@@ -111,10 +117,12 @@ python scripts/sensor.py
 ```
 
 ### 5. Explore
-- **Redpanda Console:** http://localhost:8080 (topics, messages, consumer group lag, users and ACLs)
-- **Metabase:** http://localhost:3000. On first launch, add a PostgreSQL database with host `postgres`, port `5432`, database `iot_data`, user `admin`, and the `POSTGRES_PASSWORD` from your `.env`.
+**Redpanda Console:** http://localhost:8080. Topics and users appear right away; consumer groups appear once the scripts are running, and message counts grow as the sensor sends.
 
-_Note: Metabase may take 1-2 minutes to initialize on port 3000 and will ask you to create an admin account before you can add the database._
+**Metabase:** http://localhost:3000
+1. Wait 1–2 minutes for Metabase to finish starting.
+2. Create your Metabase admin account when prompted.
+3. Add a PostgreSQL database with host `postgres`, port `5432`, database `iot_data`, user `admin`, and the `POSTGRES_PASSWORD` from your `.env`.
 
 ### Stopping and resetting
 ```bash
