@@ -1,15 +1,19 @@
 import json
 import time
 import random
+import os
+from dotenv import load_dotenv
 from confluent_kafka import Producer
+
+load_dotenv()  # loads .env from the project folder into environment variables
 
 conf = {
     'bootstrap.servers': 'localhost:19092',
     'client.id': 'classroom-sensor',
     'security.protocol': 'SASL_PLAINTEXT',
     'sasl.mechanism': 'SCRAM-SHA-256',
-    'sasl.username': 'Sasha',
-    'sasl.password': 'sashapassword'
+    'sasl.username': 'sensor',  # This service's own least-privilege account
+    'sasl.password': os.environ["SENSOR_PASSWORD"],
 }
 producer = Producer(conf)
 

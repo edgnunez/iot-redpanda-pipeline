@@ -1,12 +1,16 @@
 import json
 import psycopg2
+import os
+from dotenv import load_dotenv
 from confluent_kafka import Consumer
+
+load_dotenv()  # loads .env from the project folder into environment variables
 
 # 1. Connect to our new Postgres container
 conn = psycopg2.connect(
     dbname="iot_data",
     user="admin",
-    password="adminpassword",
+    password=os.environ["POSTGRES_PASSWORD"],
     host="localhost",
     port="5432"
 )
@@ -32,8 +36,8 @@ conf = {
     'auto.offset.reset': 'earliest',
     'security.protocol': 'SASL_PLAINTEXT',
     'sasl.mechanism': 'SCRAM-SHA-256',
-    'sasl.username': 'Sasha',
-    'sasl.password': 'sashapassword'
+    'sasl.username': 'db-writer',  # This service's own least-privilege account
+    'sasl.password': os.environ["DB_WRITER_PASSWORD"],
 }
 consumer = Consumer(conf)
 consumer.subscribe(['classroom-temperatures'])
